@@ -12,6 +12,11 @@ builder.Services.Configure<OllamaOptions>(ollamaSection);
 var ollamaOptions = ollamaSection.Get<OllamaOptions>()
 	?? throw new InvalidOperationException("Ollama configuration is missing.");
 
+builder.Services.AddHttpClient<IEmbeddingService, EmbeddingService>(client =>
+{
+	client.BaseAddress = new Uri(ollamaOptions.BaseUrl);
+});
+
 builder.Services.AddHttpClient<IOllamaService, OllamaService>(client =>
 {
 	client.BaseAddress = new Uri(ollamaOptions.BaseUrl);
