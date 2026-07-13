@@ -1,5 +1,6 @@
 using askmydocs.Models;
 using askmydocs.Services;
+using Qdrant.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,15 @@ builder.Services.AddHttpClient<IOllamaService, OllamaService>(client =>
 {
 	client.BaseAddress = new Uri(ollamaOptions.BaseUrl);
 });
+
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+
+builder.Services.AddSingleton(
+	new QdrantClient("localhost", 6334));
+
+builder.Services.AddScoped<IVectorStoreService, VectorStoreService>();
+
+builder.Services.AddScoped<IRagService, RagService>();
 
 var app = builder.Build();
 
