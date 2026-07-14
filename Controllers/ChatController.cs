@@ -11,11 +11,8 @@ public class ChatController(IRagService ragService) : ControllerBase
 	[HttpPost]
 	public async Task<IActionResult> Chat([FromBody] ChatRequest request)
 	{
-		var answer = await ragService.AskAsync(request.Message);
+		var response = await ragService.AskAsync(request.Message);
 
-		return Ok(new
-		{
-			answer
-		});
+		return Ok(response);
 	}
 }

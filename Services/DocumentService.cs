@@ -34,19 +34,40 @@ public class DocumentService(IWebHostEnvironment environment) : IDocumentService
 		string content,
 		string source)
 	{
-		var start = 0;
+		var paragraphs = content
+			.Split(
+				["\r\n\r\n", "\n\n"],
+				StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-		while (start < content.Length)
+		var currentChunk = new List<string>();
+		var currentLength = 0;
+
+		foreach (var paragraph in paragraphs)
 		{
-			var length = Math.Min(
-				ChunkSize,
-				content.Length - start);
+			if (currentLength + paragraph.Length > ChunkSize &&
+				currentChunk.Count > 0)
+			{
+				yield return new DocumentChunk(
+					string.Join("\n\n", currentChunk),
+					source);
 
-			var chunk = content.Substring(start, length);
+				var overlapParagraphs = currentChunk
+					.TakeLast(1)
+					.ToList();
 
-			yield return new DocumentChunk(chunk, source);
+				currentChunk = overlapParagraphs;
+				currentLength = overlapParagraphs.Sum(p => p.Length);
+			}
 
-			start += ChunkSize - Overlap;
+			currentChunk.Add(paragraph);
+			currentLength += paragraph.Length;
+		}
+
+		if (currentChunk.Count > 0)
+		{
+			yield return new DocumentChunk(
+				string.Join("\n\n", currentChunk),
+				source);
 		}
 	}
 }

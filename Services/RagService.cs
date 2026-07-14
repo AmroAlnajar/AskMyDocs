@@ -1,11 +1,13 @@
-﻿namespace askmydocs.Services;
+﻿using askmydocs.Models;
+
+namespace askmydocs.Services;
 
 public class RagService(
 	IEmbeddingService embeddingService,
 	IVectorStoreService vectorStoreService,
 	IOllamaService ollamaService) : IRagService
 {
-	public async Task<string> AskAsync(string question)
+	public async Task<RagResponse> AskAsync(string question)
 	{
 		// 1. Convert the question into a vector
 		var embedding =
@@ -39,6 +41,13 @@ public class RagService(
             {question}
             """;
 
-		return await ollamaService.ChatAsync(prompt);
+		var answer = await ollamaService.ChatAsync(prompt);
+
+		var sources = chunks
+			.Select(x => x.Source)
+			.Distinct()
+			.ToList();
+
+		return new RagResponse(answer, sources);
 	}
 }

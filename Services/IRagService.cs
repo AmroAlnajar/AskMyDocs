@@ -1,6 +1,8 @@
-﻿namespace askmydocs.Services;
+﻿using askmydocs.Models;
+
+namespace askmydocs.Services;
 
 public interface IRagService
 {
-	Task<string> AskAsync(string question);
+	Task<RagResponse> AskAsync(string question);
 }
