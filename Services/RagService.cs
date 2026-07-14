@@ -2,10 +2,7 @@
 
 namespace askmydocs.Services;
 
-public class RagService(
-	IEmbeddingService embeddingService,
-	IVectorStoreService vectorStoreService,
-	IOllamaService ollamaService) : IRagService
+public class RagService(IEmbeddingService embeddingService, IVectorStoreService vectorStoreService, IOllamaService ollamaService) : IRagService
 {
 	public async Task<RagResponse> AskAsync(string question)
 	{
@@ -44,8 +41,10 @@ public class RagService(
 		var answer = await ollamaService.ChatAsync(prompt);
 
 		var sources = chunks
-			.Select(x => x.Source)
-			.Distinct()
+			.GroupBy(x => x.Source)
+			.Select(x => new SourceReference(
+				x.Key,
+				x.Max(y => y.Score)))
 			.ToList();
 
 		return new RagResponse(answer, sources);

@@ -1,11 +1,10 @@
-﻿using Qdrant.Client;
+﻿using askmydocs.Models;
+using Qdrant.Client;
 using Qdrant.Client.Grpc;
 
 namespace askmydocs.Services;
 
-public class VectorStoreService(
-	QdrantClient qdrantClient,
-	IEmbeddingService embeddingService) : IVectorStoreService
+public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService embeddingService) : IVectorStoreService
 {
 	private const string CollectionName = "knowledge_base";
 
@@ -37,17 +36,16 @@ public class VectorStoreService(
 			points);
 	}
 
-	public async Task<List<DocumentChunk>> SearchAsync(
-	float[] embedding,
-	int limit = 5)
+	public async Task<List<DocumentSearchResult>> SearchAsync(float[] embedding, int limit = 5)
 	{
-		var results = await qdrantClient.QueryAsync(CollectionName,embedding,limit: (ulong)limit);
+		var results = await qdrantClient.QueryAsync(CollectionName, embedding, limit: (ulong)limit);
 
 		return results
 			.Where(x => x.Payload.ContainsKey("content"))
-			.Select(x => new DocumentChunk(
+			.Select(x => new DocumentSearchResult(
 				x.Payload["content"].StringValue,
-				x.Payload["source"].StringValue))
+				x.Payload["source"].StringValue,
+				x.Score))
 			.ToList();
 	}
 }

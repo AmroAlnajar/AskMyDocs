@@ -1,3 +1,5 @@
 ﻿namespace askmydocs.Models;
 
-public record RagResponse(string Answer,List<string> Sources);
+public record RagResponse(
+    string Answer,
+    List<SourceReference> Sources);
