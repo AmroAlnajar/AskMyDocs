@@ -1,4 +1,6 @@
-﻿using askmydocs.Models;
+﻿using System.Security.Cryptography;
+using System.Text;
+using askmydocs.Models;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 
@@ -19,7 +21,7 @@ public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService emb
 
 			var point = new PointStruct
 			{
-				Id = Guid.NewGuid(),
+				Id = CreateDeterministicId(chunk),
 				Vectors = embedding,
 				Payload =
 				{
@@ -47,5 +49,13 @@ public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService emb
 				x.Payload["source"].StringValue,
 				x.Score))
 			.ToList();
+	}
+
+	private static Guid CreateDeterministicId(DocumentChunk chunk)
+	{
+		var input = $"{chunk.Source}:{chunk.Content}";
+		var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+
+		return new Guid(hash[..16]);
 	}
 }
