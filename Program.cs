@@ -23,13 +23,21 @@ builder.Services.AddHttpClient<IOllamaService, OllamaService>(client =>
 	client.BaseAddress = new Uri(ollamaOptions.BaseUrl);
 });
 
-builder.Services.AddScoped<IDocumentService, DocumentService>();
+// Qdrant configuration
+var qdrantSection = builder.Configuration.GetSection(QdrantOptions.SectionName);
+builder.Services.Configure<QdrantOptions>(qdrantSection);
+
+var qdrantOptions = qdrantSection.Get<QdrantOptions>()
+	?? throw new InvalidOperationException("Qdrant configuration is missing.");
 
 builder.Services.AddSingleton(
-	new QdrantClient("localhost", 6334));
+	new QdrantClient(
+		qdrantOptions.Host,
+		qdrantOptions.Port));
 
+// Application services
+builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IVectorStoreService, VectorStoreService>();
-
 builder.Services.AddScoped<IRagService, RagService>();
 
 var app = builder.Build();
