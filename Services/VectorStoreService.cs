@@ -51,6 +51,22 @@ public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService emb
 			.ToList();
 	}
 
+	public async Task EnsureCollectionAsync()
+	{
+		var collections = await qdrantClient.ListCollectionsAsync();
+
+		if (collections.Contains(CollectionName))
+			return;
+
+		await qdrantClient.CreateCollectionAsync(
+			CollectionName,
+			new VectorParams
+			{
+				Size = 768,
+				Distance = Distance.Cosine
+			});
+	}
+
 	private static Guid CreateDeterministicId(DocumentChunk chunk)
 	{
 		var input = $"{chunk.Source}:{chunk.Content}";

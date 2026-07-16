@@ -39,6 +39,7 @@ builder.Services.AddSingleton(
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IVectorStoreService, VectorStoreService>();
 builder.Services.AddScoped<IRagService, RagService>();
+builder.Services.AddHostedService<KnowledgeBaseInitializer>();
 
 var app = builder.Build();
 

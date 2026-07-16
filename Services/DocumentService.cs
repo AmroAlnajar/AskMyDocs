@@ -9,7 +9,7 @@ public class DocumentService(IWebHostEnvironment environment) : IDocumentService
 	{
 		var knowledgeBasePath = Path.Combine(
 			environment.ContentRootPath,
-			"KnowledgeBase");
+			"Knowledgebase");
 
 		var files = Directory.GetFiles(
 			knowledgeBasePath,
