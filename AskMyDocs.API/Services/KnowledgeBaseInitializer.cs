@@ -1,4 +1,4 @@
-namespace askmydocs.Services;
+namespace AskMyDocs.API.Services;
 
 public class KnowledgeBaseInitializer(
     IServiceScopeFactory scopeFactory) : IHostedService

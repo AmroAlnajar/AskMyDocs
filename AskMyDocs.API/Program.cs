@@ -1,5 +1,5 @@
-using askmydocs.Models;
-using askmydocs.Services;
+using AskMyDocs.API.Models;
+using AskMyDocs.API.Services;
 using Qdrant.Client;
 
 var builder = WebApplication.CreateBuilder(args);

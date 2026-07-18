@@ -1,6 +1,6 @@
-﻿using askmydocs.Models;
+﻿using AskMyDocs.API.Models;
 
-namespace askmydocs.Services;
+namespace AskMyDocs.API.Services;
 
 public class RagService(IEmbeddingService embeddingService, IVectorStoreService vectorStoreService, IOllamaService ollamaService) : IRagService
 {

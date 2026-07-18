@@ -1,10 +1,10 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
-using askmydocs.Models;
+using AskMyDocs.API.Models;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 
-namespace askmydocs.Services;
+namespace AskMyDocs.API.Services;
 
 public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService embeddingService) : IVectorStoreService
 {

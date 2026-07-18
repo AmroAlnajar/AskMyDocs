@@ -1,4 +1,4 @@
-﻿namespace askmydocs.Models;
+﻿namespace AskMyDocs.API.Models;
 
 public class QdrantOptions
 {

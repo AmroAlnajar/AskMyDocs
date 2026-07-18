@@ -1,7 +1,7 @@
-﻿using askmydocs.Services;
+﻿using AskMyDocs.API.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace askmydocs.Controllers;
+namespace AskMyDocs.API.Controllers;
 
 [ApiController]
 [Route("api/documents")]

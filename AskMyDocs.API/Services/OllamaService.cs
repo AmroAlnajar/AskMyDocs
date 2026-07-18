@@ -1,7 +1,7 @@
-﻿using askmydocs.Models;
+﻿using AskMyDocs.API.Models;
 using Microsoft.Extensions.Options;
 
-namespace askmydocs.Services;
+namespace AskMyDocs.API.Services;
 
 public class OllamaService(
 	HttpClient httpClient,

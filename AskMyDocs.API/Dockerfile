@@ -2,7 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
 
-COPY ["askmydocs.csproj", "."]
+COPY ["AskMyDocs.API.csproj", "."]
 RUN dotnet restore
 
 COPY . .
@@ -16,4 +16,4 @@ COPY --from=build /src/Knowledgebase ./Knowledgebase
 
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "askmydocs.dll"]
+ENTRYPOINT ["dotnet", "AskMyDocs.API.dll"]
