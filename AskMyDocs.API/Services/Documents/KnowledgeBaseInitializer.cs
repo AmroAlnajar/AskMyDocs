@@ -1,4 +1,6 @@
-namespace AskMyDocs.API.Services;
+using AskMyDocs.API.Services.VectorStore;
+
+namespace AskMyDocs.API.Services.Documents;
 
 public class KnowledgeBaseInitializer(
     IServiceScopeFactory scopeFactory) : IHostedService

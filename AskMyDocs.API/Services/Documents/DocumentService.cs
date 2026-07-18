@@ -1,4 +1,4 @@
-﻿namespace AskMyDocs.API.Services;
+﻿namespace AskMyDocs.API.Services.Documents;
 
 public class DocumentService(IWebHostEnvironment environment) : IDocumentService
 {

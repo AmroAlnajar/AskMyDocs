@@ -19,7 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="NewFolder\" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\AskMyDocs.API\AskMyDocs.API.csproj" />
   </ItemGroup>
 
 </Project>

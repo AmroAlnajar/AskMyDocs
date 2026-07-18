@@ -1,6 +1,6 @@
 ﻿using AskMyDocs.API.Models;
 
-namespace AskMyDocs.API.Services;
+namespace AskMyDocs.API.Services.RAG;
 
 public interface IRagService
 {

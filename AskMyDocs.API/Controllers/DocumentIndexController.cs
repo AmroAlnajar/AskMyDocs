@@ -1,4 +1,5 @@
-﻿using AskMyDocs.API.Services;
+﻿using AskMyDocs.API.Services.Documents;
+using AskMyDocs.API.Services.VectorStore;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AskMyDocs.API.Controllers;

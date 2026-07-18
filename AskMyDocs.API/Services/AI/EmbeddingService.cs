@@ -1,7 +1,7 @@
 ﻿using AskMyDocs.API.Models;
 using Microsoft.Extensions.Options;
 
-namespace AskMyDocs.API.Services;
+namespace AskMyDocs.API.Services.AI;
 
 public class EmbeddingService(
 	HttpClient httpClient,

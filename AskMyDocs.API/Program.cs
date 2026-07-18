@@ -1,5 +1,8 @@
 using AskMyDocs.API.Models;
-using AskMyDocs.API.Services;
+using AskMyDocs.API.Services.AI;
+using AskMyDocs.API.Services.Documents;
+using AskMyDocs.API.Services.RAG;
+using AskMyDocs.API.Services.VectorStore;
 using Qdrant.Client;
 
 var builder = WebApplication.CreateBuilder(args);

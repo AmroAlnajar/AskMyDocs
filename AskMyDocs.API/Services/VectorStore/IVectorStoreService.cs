@@ -1,6 +1,7 @@
 ﻿using AskMyDocs.API.Models;
+using AskMyDocs.API.Services.Documents;
 
-namespace AskMyDocs.API.Services;
+namespace AskMyDocs.API.Services.VectorStore;
 
 public interface IVectorStoreService
 {

@@ -1,5 +1,5 @@
 ﻿using AskMyDocs.API.Models;
-using AskMyDocs.API.Services;
+using AskMyDocs.API.Services.RAG;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AskMyDocs.API.Controllers;
