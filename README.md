@@ -81,9 +81,7 @@ You should get something like:
 ```json
 {
   "answer": "...",
-  "sources": [
-    { "document": "authentication.md", "score": 0.81 }
-  ]
+  "sources": [{ "document": "authentication.md", "score": 0.81 }]
 }
 ```
 
@@ -115,11 +113,11 @@ dotnet test
 
 These are unit tests. They do not start Docker, Ollama, or Qdrant.
 
-| Area | What they actually check |
-| --- | --- |
-| `DocumentService` | paragraph splitting, overlap, source filenames, empty files, ignoring non-markdown |
-| `RagService` | embed → search top 5 → prompt; source grouping; empty retrieval; Ollama failures |
-| Controllers | request is forwarded, index counts distinct files vs chunks, failures are not swallowed |
+| Area              | What they actually check                                                                |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| `DocumentService` | paragraph splitting, overlap, source filenames, empty files, ignoring non-markdown      |
+| `RagService`      | embed → search top 5 → prompt; source grouping; empty retrieval; Ollama failures        |
+| Controllers       | request is forwarded, index counts distinct files vs chunks, failures are not swallowed |
 
 The HTTP clients and the Qdrant adapter are left out on purpose. Faking `HttpClient` there would not prove much.
 
