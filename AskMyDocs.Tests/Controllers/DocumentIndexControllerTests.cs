@@ -4,18 +4,28 @@ using AskMyDocs.API.Models;
 using AskMyDocs.API.Services.Documents;
 using AskMyDocs.API.Services.VectorStore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 
 namespace AskMyDocs.Tests.Controllers;
 
 public class DocumentIndexControllerTests
 {
+	private const string ApiKey = "dev-index-key";
+
 	private readonly FakeDocumentService _documents = new();
 	private readonly FakeVectorStoreService _vectorStore = new();
 	private readonly DocumentIndexController _sut;
 
 	public DocumentIndexControllerTests()
 	{
-		_sut = new DocumentIndexController(_documents, _vectorStore);
+		var config = new ConfigurationBuilder()
+			.AddInMemoryCollection(new Dictionary<string, string?>
+			{
+				["IndexApiKey"] = ApiKey
+			})
+			.Build();
+
+		_sut = new DocumentIndexController(_documents, _vectorStore, config);
 	}
 
 	[Fact]
@@ -27,7 +37,7 @@ public class DocumentIndexControllerTests
 			new DocumentChunk("Use TLS in transit.", "security.md")
 		];
 
-		await _sut.Index();
+		await _sut.Index(ApiKey);
 
 		Assert.Same(_documents.Chunks, _vectorStore.StoredChunks);
 	}
@@ -42,7 +52,7 @@ public class DocumentIndexControllerTests
 			new DocumentChunk("TLS in transit.", "security.md")
 		];
 
-		var result = await _sut.Index();
+		var result = await _sut.Index(ApiKey);
 
 		var body = GetOkBody(result);
 		Assert.Equal("Documents indexed successfully.", body.GetProperty("message").GetString());
@@ -55,7 +65,7 @@ public class DocumentIndexControllerTests
 	{
 		_documents.Chunks = [];
 
-		var result = await _sut.Index();
+		var result = await _sut.Index(ApiKey);
 
 		Assert.Same(_documents.Chunks, _vectorStore.StoredChunks);
 		var body = GetOkBody(result);
@@ -68,7 +78,7 @@ public class DocumentIndexControllerTests
 	{
 		_documents.Exception = new DirectoryNotFoundException("Knowledgebase is missing");
 
-		await Assert.ThrowsAsync<DirectoryNotFoundException>(_sut.Index);
+		await Assert.ThrowsAsync<DirectoryNotFoundException>(() => _sut.Index(ApiKey));
 
 		Assert.False(_vectorStore.StoreCalled);
 	}
@@ -82,10 +92,28 @@ public class DocumentIndexControllerTests
 		];
 		_vectorStore.StoreException = new InvalidOperationException("Qdrant is unavailable");
 
-		var ex = await Assert.ThrowsAsync<InvalidOperationException>(_sut.Index);
+		var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.Index(ApiKey));
 
 		Assert.Equal("Qdrant is unavailable", ex.Message);
 		Assert.True(_vectorStore.StoreCalled);
+	}
+
+	[Fact]
+	public async Task Index_WhenApiKeyIsMissing_ReturnsUnauthorized()
+	{
+		var result = await _sut.Index(null);
+
+		Assert.IsType<UnauthorizedResult>(result);
+		Assert.False(_vectorStore.StoreCalled);
+	}
+
+	[Fact]
+	public async Task Index_WhenApiKeyIsWrong_ReturnsUnauthorized()
+	{
+		var result = await _sut.Index("wrong-key");
+
+		Assert.IsType<UnauthorizedResult>(result);
+		Assert.False(_vectorStore.StoreCalled);
 	}
 
 	private static JsonElement GetOkBody(IActionResult result)

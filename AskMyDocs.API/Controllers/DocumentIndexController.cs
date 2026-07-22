@@ -8,11 +8,16 @@ namespace AskMyDocs.API.Controllers;
 [Route("api/documents")]
 public class DocumentIndexController(
 	IDocumentService documentService,
-	IVectorStoreService vectorStoreService) : ControllerBase
+	IVectorStoreService vectorStoreService,
+	IConfiguration configuration) : ControllerBase
 {
 	[HttpPost("index")]
-	public async Task<IActionResult> Index()
+	public async Task<IActionResult> Index([FromHeader(Name = "X-Api-Key")] string? apiKey)
 	{
+		var expected = configuration["IndexApiKey"];
+		if (string.IsNullOrEmpty(expected) || apiKey != expected)
+			return Unauthorized();
+
 		var chunks = await documentService.GetDocumentChunksAsync();
 
 		await vectorStoreService.StoreAsync(chunks);

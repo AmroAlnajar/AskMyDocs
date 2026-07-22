@@ -1,3 +1,7 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AskMyDocs.API.Models;
 
-public record ChatRequest(string Message);
+public record ChatRequest(
+	[property: Required(AllowEmptyStrings = false)]
+	string Message);

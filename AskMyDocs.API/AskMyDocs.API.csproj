@@ -13,4 +13,8 @@
     <PackageReference Include="Qdrant.Client" Version="1.19.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="AskMyDocs.Tests" />
+  </ItemGroup>
+
 </Project>

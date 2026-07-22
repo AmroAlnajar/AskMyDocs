@@ -43,6 +43,24 @@ public class ChatControllerTests
 	}
 
 	[Fact]
+	public async Task Chat_WhenMessageIsEmpty_ReturnsBadRequest()
+	{
+		var result = await _sut.Chat(new ChatRequest(""));
+
+		Assert.IsType<BadRequestObjectResult>(result);
+		Assert.Null(_ragService.LastQuestion);
+	}
+
+	[Fact]
+	public async Task Chat_WhenMessageIsWhitespace_ReturnsBadRequest()
+	{
+		var result = await _sut.Chat(new ChatRequest("   "));
+
+		Assert.IsType<BadRequestObjectResult>(result);
+		Assert.Null(_ragService.LastQuestion);
+	}
+
+	[Fact]
 	public async Task Chat_WhenRagServiceFails_BubblesException()
 	{
 		_ragService.Exception = new OllamaUnavailableException("Ollama is down");

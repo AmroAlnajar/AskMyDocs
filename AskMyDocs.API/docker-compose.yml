@@ -8,6 +8,7 @@ services:
       Ollama__BaseUrl: "http://ollama:11434/"
       Qdrant__Host: "qdrant"
       Qdrant__Port: "6334"
+      IndexApiKey: "dev-index-key"
     depends_on:
       ollama-init:
         condition: service_completed_successfully

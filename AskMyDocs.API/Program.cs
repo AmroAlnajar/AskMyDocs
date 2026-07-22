@@ -3,12 +3,15 @@ using AskMyDocs.API.Services.AI;
 using AskMyDocs.API.Services.Documents;
 using AskMyDocs.API.Services.RAG;
 using AskMyDocs.API.Services.VectorStore;
+using Microsoft.AspNetCore.Diagnostics;
 using Qdrant.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
+builder.Services.AddHealthChecks();
 
 var ollamaSection = builder.Configuration.GetSection(OllamaOptions.SectionName);
 builder.Services.Configure<OllamaOptions>(ollamaSection);
@@ -46,6 +49,23 @@ builder.Services.AddHostedService<KnowledgeBaseInitializer>();
 
 var app = builder.Build();
 
+app.UseExceptionHandler(errorApp =>
+{
+	errorApp.Run(async context =>
+	{
+		var error = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+		var ollamaDown = error is OllamaUnavailableException;
+
+		context.Response.StatusCode = ollamaDown
+			? StatusCodes.Status503ServiceUnavailable
+			: StatusCodes.Status500InternalServerError;
+
+		await Results.Problem(
+			title: ollamaDown ? "Ollama is unavailable" : "An error occurred",
+			statusCode: context.Response.StatusCode).ExecuteAsync(context);
+	});
+});
+
 if (app.Environment.IsDevelopment())
 {
 	app.MapOpenApi();
@@ -53,5 +73,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();
