@@ -15,12 +15,12 @@ public class KnowledgeBaseInitializer(
         var vectorStoreService =
             scope.ServiceProvider.GetRequiredService<IVectorStoreService>();
 
-        await vectorStoreService.EnsureCollectionAsync();
+        await vectorStoreService.EnsureCollectionAsync(cancellationToken);
 
         var chunks =
-            await documentService.GetDocumentChunksAsync();
+            await documentService.GetDocumentChunksAsync(cancellationToken);
 
-        await vectorStoreService.StoreAsync(chunks);
+        await vectorStoreService.StoreAsync(chunks, cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken)

@@ -1,7 +1,6 @@
-﻿namespace AskMyDocs.API.Services.AI
+﻿namespace AskMyDocs.API.Services.AI;
+
+public interface IEmbeddingService
 {
-	public interface IEmbeddingService
-	{
-		Task<float[]> GenerateEmbeddingAsync(string text);
-	}
+	Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default);
 }

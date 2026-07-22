@@ -5,7 +5,7 @@ public class DocumentService(IWebHostEnvironment environment) : IDocumentService
 	private const int ChunkSize = 500;
 	private const int Overlap = 100;
 
-	public async Task<List<DocumentChunk>> GetDocumentChunksAsync()
+	public async Task<List<DocumentChunk>> GetDocumentChunksAsync(CancellationToken cancellationToken = default)
 	{
 		var knowledgeBasePath = Path.Combine(
 			environment.ContentRootPath,
@@ -19,7 +19,7 @@ public class DocumentService(IWebHostEnvironment environment) : IDocumentService
 
 		foreach (var file in files)
 		{
-			var content = await File.ReadAllTextAsync(file);
+			var content = await File.ReadAllTextAsync(file, cancellationToken);
 
 			chunks.AddRange(
 				SplitIntoChunks(

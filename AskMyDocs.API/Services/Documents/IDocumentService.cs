@@ -2,7 +2,7 @@
 
 public interface IDocumentService
 {
-	Task<List<DocumentChunk>> GetDocumentChunksAsync();
+	Task<List<DocumentChunk>> GetDocumentChunksAsync(CancellationToken cancellationToken = default);
 }
 
 public record DocumentChunk(

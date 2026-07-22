@@ -138,7 +138,7 @@ public class RagServiceTests
 		public string? LastText { get; private set; }
 		public Exception? Exception { get; set; }
 
-		public Task<float[]> GenerateEmbeddingAsync(string text)
+		public Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
 		{
 			calls.Add("embed");
 			LastText = text;
@@ -158,11 +158,11 @@ public class RagServiceTests
 		public float[]? LastEmbedding { get; private set; }
 		public int? LastLimit { get; private set; }
 
-		public Task EnsureCollectionAsync() => Task.CompletedTask;
+		public Task EnsureCollectionAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-		public Task StoreAsync(IReadOnlyList<DocumentChunk> chunks) => Task.CompletedTask;
+		public Task StoreAsync(IReadOnlyList<DocumentChunk> chunks, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-		public Task<List<DocumentSearchResult>> SearchAsync(float[] embedding, int limit = 5)
+		public Task<List<DocumentSearchResult>> SearchAsync(float[] embedding, int limit = 5, CancellationToken cancellationToken = default)
 		{
 			calls.Add("search");
 			LastEmbedding = embedding;
@@ -177,7 +177,7 @@ public class RagServiceTests
 		public string? LastPrompt { get; private set; }
 		public Exception? Exception { get; set; }
 
-		public Task<string> ChatAsync(string message)
+		public Task<string> ChatAsync(string message, CancellationToken cancellationToken = default)
 		{
 			calls.Add("chat");
 			LastPrompt = message;

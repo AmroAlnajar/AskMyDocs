@@ -6,15 +6,15 @@ namespace AskMyDocs.API.Services.RAG;
 
 public class RagService(IEmbeddingService embeddingService, IVectorStoreService vectorStoreService, IOllamaService ollamaService) : IRagService
 {
-	public async Task<RagResponse> AskAsync(string question)
+	public async Task<RagResponse> AskAsync(string question, CancellationToken cancellationToken = default)
 	{
 		// 1. Convert the question into a vector
 		var embedding =
-			await embeddingService.GenerateEmbeddingAsync(question);
+			await embeddingService.GenerateEmbeddingAsync(question, cancellationToken);
 
 		// 2. Find relevant chunks
 		var chunks =
-			await vectorStoreService.SearchAsync(embedding, 5);
+			await vectorStoreService.SearchAsync(embedding, 5, cancellationToken);
 
 		// 3. Build context for the LLM
 		var context = string.Join(
@@ -40,7 +40,7 @@ public class RagService(IEmbeddingService embeddingService, IVectorStoreService 
             {question}
             """;
 
-		var answer = await ollamaService.ChatAsync(prompt);
+		var answer = await ollamaService.ChatAsync(prompt, cancellationToken);
 
 		var sources = chunks
 			.GroupBy(x => x.Source)

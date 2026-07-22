@@ -12,15 +12,17 @@ public class DocumentIndexController(
 	IConfiguration configuration) : ControllerBase
 {
 	[HttpPost("index")]
-	public async Task<IActionResult> Index([FromHeader(Name = "X-Api-Key")] string? apiKey)
+	public async Task<IActionResult> Index(
+		[FromHeader(Name = "X-Api-Key")] string? apiKey,
+		CancellationToken cancellationToken = default)
 	{
 		var expected = configuration["IndexApiKey"];
 		if (string.IsNullOrEmpty(expected) || apiKey != expected)
 			return Unauthorized();
 
-		var chunks = await documentService.GetDocumentChunksAsync();
+		var chunks = await documentService.GetDocumentChunksAsync(cancellationToken);
 
-		await vectorStoreService.StoreAsync(chunks);
+		await vectorStoreService.StoreAsync(chunks, cancellationToken);
 
 		return Ok(new
 		{

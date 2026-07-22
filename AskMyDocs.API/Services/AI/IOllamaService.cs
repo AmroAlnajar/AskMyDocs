@@ -2,5 +2,5 @@
 
 public interface IOllamaService
 {
-	Task<string> ChatAsync(string message);
+	Task<string> ChatAsync(string message, CancellationToken cancellationToken = default);
 }

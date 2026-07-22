@@ -4,5 +4,5 @@ namespace AskMyDocs.API.Services.RAG;
 
 public interface IRagService
 {
-	Task<RagResponse> AskAsync(string question);
+	Task<RagResponse> AskAsync(string question, CancellationToken cancellationToken = default);
 }

@@ -77,7 +77,7 @@ public class ChatControllerTests
 		public RagResponse Response { get; set; } = new("OK", []);
 		public Exception? Exception { get; set; }
 
-		public Task<RagResponse> AskAsync(string question)
+		public Task<RagResponse> AskAsync(string question, CancellationToken cancellationToken = default)
 		{
 			LastQuestion = question;
 

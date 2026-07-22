@@ -9,12 +9,12 @@ namespace AskMyDocs.API.Controllers;
 public class ChatController(IRagService ragService) : ControllerBase
 {
 	[HttpPost]
-	public async Task<IActionResult> Chat([FromBody] ChatRequest request)
+	public async Task<IActionResult> Chat([FromBody] ChatRequest request, CancellationToken cancellationToken = default)
 	{
 		if (string.IsNullOrWhiteSpace(request.Message))
 			return BadRequest(new { error = "Message is required." });
 
-		var response = await ragService.AskAsync(request.Message);
+		var response = await ragService.AskAsync(request.Message, cancellationToken);
 
 		return Ok(response);
 	}

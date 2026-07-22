@@ -5,9 +5,9 @@ namespace AskMyDocs.API.Services.VectorStore;
 
 public interface IVectorStoreService
 {
-	Task EnsureCollectionAsync();
+	Task EnsureCollectionAsync(CancellationToken cancellationToken = default);
 
-	Task StoreAsync(IReadOnlyList<DocumentChunk> chunks);
+	Task StoreAsync(IReadOnlyList<DocumentChunk> chunks, CancellationToken cancellationToken = default);
 
-	Task<List<DocumentSearchResult>> SearchAsync(float[] embedding, int limit = 5);
+	Task<List<DocumentSearchResult>> SearchAsync(float[] embedding, int limit = 5, CancellationToken cancellationToken = default);
 }

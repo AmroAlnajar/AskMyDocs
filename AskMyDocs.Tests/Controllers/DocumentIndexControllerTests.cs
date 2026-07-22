@@ -128,7 +128,7 @@ public class DocumentIndexControllerTests
 		public List<DocumentChunk> Chunks { get; set; } = [];
 		public Exception? Exception { get; set; }
 
-		public Task<List<DocumentChunk>> GetDocumentChunksAsync()
+		public Task<List<DocumentChunk>> GetDocumentChunksAsync(CancellationToken cancellationToken = default)
 		{
 			if (Exception is not null)
 			{
@@ -145,9 +145,9 @@ public class DocumentIndexControllerTests
 		public bool StoreCalled { get; private set; }
 		public Exception? StoreException { get; set; }
 
-		public Task EnsureCollectionAsync() => Task.CompletedTask;
+		public Task EnsureCollectionAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-		public Task StoreAsync(IReadOnlyList<DocumentChunk> chunks)
+		public Task StoreAsync(IReadOnlyList<DocumentChunk> chunks, CancellationToken cancellationToken = default)
 		{
 			StoreCalled = true;
 
@@ -160,7 +160,7 @@ public class DocumentIndexControllerTests
 			return Task.CompletedTask;
 		}
 
-		public Task<List<DocumentSearchResult>> SearchAsync(float[] embedding, int limit = 5)
+		public Task<List<DocumentSearchResult>> SearchAsync(float[] embedding, int limit = 5, CancellationToken cancellationToken = default)
 			=> Task.FromResult(new List<DocumentSearchResult>());
 	}
 }

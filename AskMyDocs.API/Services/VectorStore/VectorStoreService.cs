@@ -12,14 +12,14 @@ public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService emb
 {
 	private const string CollectionName = "knowledge_base";
 
-	public async Task StoreAsync(IReadOnlyList<DocumentChunk> chunks)
+	public async Task StoreAsync(IReadOnlyList<DocumentChunk> chunks, CancellationToken cancellationToken = default)
 	{
 		var points = new List<PointStruct>();
 
 		foreach (var chunk in chunks)
 		{
 			var embedding =
-				await embeddingService.GenerateEmbeddingAsync(chunk.Content);
+				await embeddingService.GenerateEmbeddingAsync(chunk.Content, cancellationToken);
 
 			var point = new PointStruct
 			{
@@ -37,12 +37,17 @@ public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService emb
 
 		await qdrantClient.UpsertAsync(
 			CollectionName,
-			points);
+			points,
+			cancellationToken: cancellationToken);
 	}
 
-	public async Task<List<DocumentSearchResult>> SearchAsync(float[] embedding, int limit = 5)
+	public async Task<List<DocumentSearchResult>> SearchAsync(float[] embedding, int limit = 5, CancellationToken cancellationToken = default)
 	{
-		var results = await qdrantClient.QueryAsync(CollectionName, embedding, limit: (ulong)limit);
+		var results = await qdrantClient.QueryAsync(
+			CollectionName,
+			embedding,
+			limit: (ulong)limit,
+			cancellationToken: cancellationToken);
 
 		return results
 			.Where(x => x.Payload.ContainsKey("content"))
@@ -53,9 +58,9 @@ public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService emb
 			.ToList();
 	}
 
-	public async Task EnsureCollectionAsync()
+	public async Task EnsureCollectionAsync(CancellationToken cancellationToken = default)
 	{
-		var collections = await qdrantClient.ListCollectionsAsync();
+		var collections = await qdrantClient.ListCollectionsAsync(cancellationToken: cancellationToken);
 
 		if (collections.Contains(CollectionName))
 			return;
@@ -66,7 +71,8 @@ public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService emb
 			{
 				Size = 768,
 				Distance = Distance.Cosine
-			});
+			},
+			cancellationToken: cancellationToken);
 	}
 
 	private static Guid CreateDeterministicId(DocumentChunk chunk)

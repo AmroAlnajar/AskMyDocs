@@ -8,7 +8,7 @@ public class OllamaService(
 	IOptions<OllamaOptions> options,
 	ILogger<OllamaService> logger) : IOllamaService
 {
-	public async Task<string> ChatAsync(string message)
+	public async Task<string> ChatAsync(string message, CancellationToken cancellationToken = default)
 	{
 		var request = new
 		{
@@ -19,7 +19,7 @@ public class OllamaService(
 
 		try
 		{
-			var response = await httpClient.PostAsJsonAsync("api/generate", request);
+			var response = await httpClient.PostAsJsonAsync("api/generate", request, cancellationToken);
 
 			if (!response.IsSuccessStatusCode)
 			{
@@ -27,7 +27,7 @@ public class OllamaService(
 				throw new OllamaUnavailableException($"Ollama returned {(int)response.StatusCode}.");
 			}
 
-			var result = await response.Content.ReadFromJsonAsync<OllamaResponse>();
+			var result = await response.Content.ReadFromJsonAsync<OllamaResponse>(cancellationToken);
 			return result?.Response ?? string.Empty;
 		}
 		catch (OllamaUnavailableException)
