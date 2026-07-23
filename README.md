@@ -45,15 +45,23 @@ If the retrieved context does not contain the answer, the prompt tells the model
 
 ```
 AskMyDocs.slnx
-AskMyDocs.API/                 ASP.NET Core 10 Web API
+LICENSE
+.github/workflows/ci.yml       build + test on master
+AskMyDocs.API/
   Controllers/                 POST /api/chat, POST /api/documents/index
-  Services/                    chunking, embeddings, Qdrant, RAG, Ollama
-  Knowledgebase/               sample Helix docs (architecture, auth, security, ...)
+  Services/AI                  Ollama chat + embeddings
+  Services/Documents           markdown chunking, startup index
+  Services/RAG                 retrieve + prompt
+  Services/VectorStore         Qdrant
+  Knowledgebase/               sample Helix docs
   docker-compose.yml           API + Ollama + Qdrant
-AskMyDocs.Tests/               xUnit tests for chunking, RAG, and controllers
+AskMyDocs.Tests/
+  Services/                    DocumentService, RagService
+  Controllers/                 chat + index
+  Health/                      GET /health against a test host
 ```
 
-The API talks to Ollama over HTTP (`api/embeddings`, `api/generate`) and to Qdrant over gRPC on port 6334. Vectors are 768-dimensional, cosine distance, which matches `nomic-embed-text`.
+The API talks to Ollama over HTTP (`api/embeddings`, `api/generate`) and to Qdrant over gRPC on port 6334. Vectors are 768-dimensional, cosine distance, which matches `nomic-embed-text`. Chat and embeddings both treat a down or timing-out Ollama as unavailable.
 
 ## Running it
 
@@ -69,10 +77,18 @@ Wait until `askmydocs-api` is up. `ollama-init` has to finish pulling `qwen3:1.7
 The API listens on [http://localhost:8080](http://localhost:8080).
 
 ```bash
+curl -s http://localhost:8080/health
+```
+
+That should return `Healthy`.
+
+```bash
 curl -s http://localhost:8080/api/chat \
   -H "Content-Type: application/json" \
   -d "{\"message\":\"How does Helix authenticate requests?\"}"
 ```
+
+Empty or whitespace `message` returns **400**. If Ollama is down or times out, chat returns **503**.
 
 On Windows PowerShell, use `curl.exe` so you do not hit the `Invoke-WebRequest` alias.
 
@@ -90,8 +106,11 @@ You should get something like:
 To re-index after you edit markdown:
 
 ```bash
-curl -s -X POST http://localhost:8080/api/documents/index
+curl -s -X POST http://localhost:8080/api/documents/index \
+  -H "X-Api-Key: dev-index-key"
 ```
+
+Wrong or missing key returns **401**. The key is `IndexApiKey` in config (default `dev-index-key`). Override it in compose or environment for anything that is not local.
 
 In Development, OpenAPI JSON is at `/openapi/v1.json`. There is no Swagger UI in this repo.
 
@@ -105,19 +124,20 @@ dotnet run --project AskMyDocs.API
 
 That uses `http://localhost:5058` (see `launchSettings.json`). `appsettings.json` already points at localhost; compose overrides those URLs when you run in Docker.
 
-## Tests
+## Tests and CI
 
 ```bash
 dotnet test
 ```
 
-These are unit tests. They do not start Docker, Ollama, or Qdrant.
+GitHub Actions on `master` does restore, Release build, then the same `dotnet test`. Tests do not start Docker, Ollama, or Qdrant. The health test boots the API host without the startup indexer.
 
-| Area              | What they actually check                                                                |
-| ----------------- | --------------------------------------------------------------------------------------- |
-| `DocumentService` | paragraph splitting, overlap, source filenames, empty files, ignoring non-markdown      |
-| `RagService`      | embed → search top 5 → prompt; source grouping; empty retrieval; Ollama failures        |
-| Controllers       | request is forwarded, index counts distinct files vs chunks, failures are not swallowed |
+| Area | What they actually check |
+| --- | --- |
+| `DocumentService` | paragraph splitting, overlap, source filenames, empty files, ignoring non-markdown |
+| `RagService` | embed → search top 5 → prompt; source grouping; empty retrieval; Ollama failures |
+| Controllers | chat forwards the message; empty message is rejected; index counts files vs chunks; bad API key is rejected |
+| `/health` | test host returns 200 `Healthy` |
 
 The HTTP clients and the Qdrant adapter are left out on purpose. Faking `HttpClient` there would not prove much.
 
@@ -127,5 +147,6 @@ The HTTP clients and the Qdrant adapter are left out on purpose. Faking `HttpCli
 - Ollama (`qwen3:1.7b`, `nomic-embed-text`)
 - Qdrant
 - xUnit
+- MIT license
 
-Config lives under `Ollama` and `Qdrant` in `appsettings.json`. Compose sets `Ollama__BaseUrl`, `Qdrant__Host`, and `Qdrant__Port` so the container talks to the other services by name.
+Config lives under `Ollama`, `Qdrant`, and `IndexApiKey` in `appsettings.json`. Compose sets `Ollama__BaseUrl`, `Qdrant__Host`, `Qdrant__Port`, and `IndexApiKey` so the container talks to the other services by name.
