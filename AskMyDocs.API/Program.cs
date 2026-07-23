@@ -72,7 +72,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.MapControllers();
 app.MapHealthChecks("/health");
+app.MapFallbackToFile("index.html");
 
 app.Run();

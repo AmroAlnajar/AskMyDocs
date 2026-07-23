@@ -25,6 +25,17 @@ public class HealthCheckTests : IClassFixture<HealthCheckTests.ApiFactory>
 		Assert.Equal("Healthy", await response.Content.ReadAsStringAsync());
 	}
 
+	[Fact]
+	public async Task Root_ServesChatPage()
+	{
+		var response = await _client.GetAsync("/");
+
+		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+		var html = await response.Content.ReadAsStringAsync();
+		Assert.Contains("AskMyDocs", html);
+		Assert.Contains("/api/chat", html);
+	}
+
 	public sealed class ApiFactory : WebApplicationFactory<Program>
 	{
 		protected override void ConfigureWebHost(IWebHostBuilder builder)

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>AskMyDocs</title>
+	<style>
+		:root {
+			--paper: #f3efe6;
+			--ink: #1c1917;
+			--muted: #57534e;
+			--line: #d6d0c4;
+			--accent: #1f4d47;
+			--accent-hover: #163832;
+			--you: #e7e1d5;
+			--bot: #fffdf8;
+			--danger: #9f2d2d;
+		}
+
+		* { box-sizing: border-box; }
+
+		html, body {
+			margin: 0;
+			height: 100%;
+		}
+
+		body {
+			font-family: "Segoe UI", system-ui, sans-serif;
+			background: var(--paper);
+			color: var(--ink);
+			display: flex;
+			flex-direction: column;
+		}
+
+		header {
+			padding: 1.25rem 1.5rem 1rem;
+			border-bottom: 1px solid var(--line);
+		}
+
+		header h1 {
+			font-family: Georgia, "Times New Roman", serif;
+			font-size: 1.4rem;
+			font-weight: 600;
+			margin: 0 0 0.25rem;
+			letter-spacing: -0.02em;
+		}
+
+		header p {
+			margin: 0;
+			color: var(--muted);
+			font-size: 0.92rem;
+		}
+
+		#log {
+			flex: 1;
+			overflow-y: auto;
+			padding: 1.25rem 1.5rem 1rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.85rem;
+		}
+
+		.msg {
+			max-width: 40rem;
+			padding: 0.85rem 1rem;
+			border: 1px solid var(--line);
+			line-height: 1.5;
+			font-size: 0.95rem;
+			white-space: pre-wrap;
+			word-break: break-word;
+		}
+
+		.msg.you {
+			align-self: flex-end;
+			background: var(--you);
+		}
+
+		.msg.bot {
+			align-self: flex-start;
+			background: var(--bot);
+		}
+
+		.msg.error {
+			color: var(--danger);
+			border-color: #e4b4b4;
+			background: #fbf2f2;
+		}
+
+		.msg .who {
+			display: block;
+			font-size: 0.72rem;
+			letter-spacing: 0.06em;
+			text-transform: uppercase;
+			color: var(--muted);
+			margin-bottom: 0.4rem;
+		}
+
+		.sources {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.4rem;
+			margin-top: 0.75rem;
+		}
+
+		.sources span {
+			font-size: 0.78rem;
+			border: 1px solid var(--line);
+			padding: 0.15rem 0.45rem;
+			background: var(--paper);
+			color: var(--muted);
+		}
+
+		form {
+			display: flex;
+			gap: 0.6rem;
+			padding: 0.9rem 1.5rem 1.25rem;
+			border-top: 1px solid var(--line);
+			background: #efeae0;
+		}
+
+		textarea {
+			flex: 1;
+			resize: none;
+			min-height: 2.75rem;
+			max-height: 8rem;
+			padding: 0.65rem 0.75rem;
+			border: 1px solid var(--line);
+			background: #fffdf8;
+			color: var(--ink);
+			font: inherit;
+		}
+
+		textarea:focus {
+			outline: 2px solid var(--accent);
+			outline-offset: 1px;
+		}
+
+		button {
+			border: 0;
+			background: var(--accent);
+			color: #f7f4ee;
+			padding: 0 1.15rem;
+			font: inherit;
+			font-weight: 600;
+			cursor: pointer;
+		}
+
+		button:hover:not(:disabled) {
+			background: var(--accent-hover);
+		}
+
+		button:disabled {
+			opacity: 0.55;
+			cursor: default;
+		}
+	</style>
+</head>
+<body>
+	<header>
+		<h1>AskMyDocs</h1>
+		<p>Ask the Helix knowledge base. Answers cite the markdown they used.</p>
+	</header>
+
+	<div id="log" aria-live="polite"></div>
+
+	<form id="ask-form">
+		<label class="visually-hidden" for="question">Question</label>
+		<textarea id="question" rows="2" placeholder="How does Helix authenticate requests?" autofocus></textarea>
+		<button type="submit" id="ask">Ask</button>
+	</form>
+
+	<style>
+		.visually-hidden {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip: rect(0 0 0 0);
+		}
+	</style>
+
+	<script>
+		const log = document.getElementById("log");
+		const form = document.getElementById("ask-form");
+		const input = document.getElementById("question");
+		const button = document.getElementById("ask");
+
+		function escapeHtml(value) {
+			return value.replace(/[&<>"']/g, (ch) => ({
+				"&": "&amp;",
+				"<": "&lt;",
+				">": "&gt;",
+				'"': "&quot;",
+				"'": "&#39;"
+			}[ch]));
+		}
+
+		function addMessage(role, html, extraClass) {
+			const el = document.createElement("article");
+			el.className = `msg ${role}${extraClass ? " " + extraClass : ""}`;
+			el.innerHTML = html;
+			log.appendChild(el);
+			log.scrollTop = log.scrollHeight;
+			return el;
+		}
+
+		input.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" && !event.shiftKey) {
+				event.preventDefault();
+				form.requestSubmit();
+			}
+		});
+
+		form.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			const message = input.value.trim();
+			if (!message || button.disabled) return;
+
+			addMessage("you", `<span class="who">You</span>${escapeHtml(message)}`);
+			input.value = "";
+			button.disabled = true;
+
+			const pending = addMessage("bot", `<span class="who">AskMyDocs</span>Looking that up…`);
+
+			try {
+				const response = await fetch("/api/chat", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ message })
+				});
+
+				if (response.status === 400) {
+					throw new Error("Ask a real question — empty messages are ignored.");
+				}
+
+				if (response.status === 503) {
+					const problem = await response.json().catch(() => ({}));
+					throw new Error(problem.title || "Ollama is unavailable.");
+				}
+
+				if (!response.ok) {
+					throw new Error("The API returned " + response.status + ".");
+				}
+
+				const body = await response.json();
+				const sources = Array.isArray(body.sources) ? body.sources : [];
+				const chips = sources.length
+					? `<div class="sources">${sources.map((s) =>
+						`<span>${escapeHtml(s.document || "unknown")} · ${(s.score ?? 0).toFixed(2)}</span>`
+					).join("")}</div>`
+					: "";
+
+				pending.innerHTML =
+					`<span class="who">AskMyDocs</span>${escapeHtml(body.answer || "")}${chips}`;
+			} catch (error) {
+				pending.classList.add("error");
+				pending.innerHTML =
+					`<span class="who">AskMyDocs</span>${escapeHtml(error.message || "Something went wrong.")}`;
+			} finally {
+				button.disabled = false;
+				input.focus();
+			}
+		});
+	</script>
+</body>
+</html>
