@@ -1,86 +1,41 @@
 # AskMyDocs
 
-ASP.NET Core API that answers questions from a folder of markdown docs.
+Ask a folder of markdown. The API chunks it, embeds it with Ollama, stores the vectors in Qdrant, and answers with the files it used.
 
-There is no chat UI. You drop `.md` files in `Knowledgebase/`, the API chunks and embeds them, Qdrant stores the vectors, and `POST /api/chat` returns an answer plus the files it used. The sample corpus is a fake internal platform called Helix, so the model has something concrete to talk about.
+The chat is a static page served by the API — no extra frontend. Sample docs describe a fake platform called Helix.
 
-## How a question is answered
+<p align="center">
+  <img src="docs/Demo1.png" alt="AskMyDocs chat answering a Helix authentication question, with source files and similarity scores" width="700">
+</p>
+
+## How it works
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API as ChatController
-    participant RAG as RagService
+    participant You
+    participant API
     participant Ollama
     participant Qdrant
 
-    Client->>API: POST /api/chat
-    API->>RAG: AskAsync(question)
-    RAG->>Ollama: embed the question (nomic-embed-text)
-    RAG->>Qdrant: search top 5 chunks
-    RAG->>Ollama: generate answer (qwen3:1.7b) using only those chunks
-    API-->>Client: answer + source files and scores
+    You->>API: POST /api/chat
+    API->>Ollama: embed the question
+    API->>Qdrant: search top 5 chunks
+    API->>Ollama: answer using only those chunks
+    API-->>You: answer + sources
 ```
 
-Indexing is a separate path. On startup a hosted service reads every markdown file, splits it into overlapping paragraph chunks (~500 characters), embeds each chunk, and upserts into a Qdrant collection named `knowledge_base`. Point IDs are a hash of `source + content`, so running index again does not create duplicates.
+On startup, and again via `POST /api/documents/index`, every `.md` file in `Knowledgebase/` is split into overlapping paragraph chunks (~500 characters), embedded, and upserted into Qdrant (`knowledge_base`). Point IDs are a hash of source + content, so re-indexing does not duplicate. If the retrieved chunks do not contain the answer, the model is told to say so instead of guessing.
 
-```mermaid
-flowchart LR
-    subgraph Index
-        MD["Knowledgebase/*.md"] --> Chunk["DocumentService"]
-        Chunk --> Embed["Ollama embeddings"]
-        Embed --> Q[(Qdrant)]
-    end
+## Run it
 
-    subgraph Ask
-        Q --> Search["top 5 by cosine"]
-        Search --> Prompt["grounded prompt"]
-        Prompt --> LLM["Ollama chat"]
-    end
-```
-
-If the retrieved context does not contain the answer, the prompt tells the model to say it does not have enough information rather than invent one.
-
-## What's in the repo
-
-```
-AskMyDocs.slnx
-LICENSE
-.github/workflows/ci.yml       build + test on master
-AskMyDocs.API/
-  Controllers/                 POST /api/chat, POST /api/documents/index
-  Services/AI                  Ollama chat + embeddings
-  Services/Documents           markdown chunking, startup index
-  Services/RAG                 retrieve + prompt
-  Services/VectorStore         Qdrant
-  Knowledgebase/               sample Helix docs
-  docker-compose.yml           API + Ollama + Qdrant
-AskMyDocs.Tests/
-  Services/                    DocumentService, RagService
-  Controllers/                 chat + index
-  Health/                      GET /health against a test host
-```
-
-The API talks to Ollama over HTTP (`api/embeddings`, `api/generate`) and to Qdrant over gRPC on port 6334. Vectors are 768-dimensional, cosine distance, which matches `nomic-embed-text`. Chat and embeddings both treat a down or timing-out Ollama as unavailable.
-
-## Running it
-
-You need Docker, and a machine that can pull two Ollama models. First boot is slow. That is the model download, not the API hanging.
+You need Docker. First boot is slow — that is Ollama pulling `qwen3:1.7b` and `nomic-embed-text`, not the API hanging.
 
 ```bash
 cd AskMyDocs.API
 docker compose up --build
 ```
 
-Wait until `askmydocs-api` is up. `ollama-init` has to finish pulling `qwen3:1.7b` and `nomic-embed-text` before the API starts. After that the API indexes the knowledge base on its own.
-
-The API listens on [http://localhost:8080](http://localhost:8080).
-
-```bash
-curl -s http://localhost:8080/health
-```
-
-That should return `Healthy`.
+When `askmydocs-api` is up, open [http://localhost:8080](http://localhost:8080).
 
 ```bash
 curl -s http://localhost:8080/api/chat \
@@ -88,11 +43,7 @@ curl -s http://localhost:8080/api/chat \
   -d "{\"message\":\"How does Helix authenticate requests?\"}"
 ```
 
-Empty or whitespace `message` returns **400**. If Ollama is down or times out, chat returns **503**.
-
-On Windows PowerShell, use `curl.exe` so you do not hit the `Invoke-WebRequest` alias.
-
-You should get something like:
+On PowerShell, use `curl.exe` so you do not hit the `Invoke-WebRequest` alias. Empty `message` is **400**. Ollama down or timed out is **503**. `GET /health` should return `Healthy`.
 
 ```json
 {
@@ -101,20 +52,18 @@ You should get something like:
 }
 ```
 
-`score` is the Qdrant similarity for that file (highest chunk if the same file showed up more than once).
+`score` is Qdrant similarity (best chunk if the same file showed up more than once).
 
-To re-index after you edit markdown:
+After you edit markdown:
 
 ```bash
 curl -s -X POST http://localhost:8080/api/documents/index \
   -H "X-Api-Key: dev-index-key"
 ```
 
-Wrong or missing key returns **401**. The key is `IndexApiKey` in config (default `dev-index-key`). Override it in compose or environment for anything that is not local.
+Wrong or missing key is **401**. The key is `IndexApiKey` in config (default `dev-index-key`). Change it if this is not just local.
 
-In Development, OpenAPI JSON is at `/openapi/v1.json`. There is no Swagger UI in this repo.
-
-### Running the API on the host instead
+### API on the host
 
 If Ollama and Qdrant are already running locally (`localhost:11434` and gRPC `6334`), with those two models pulled:
 
@@ -122,31 +71,14 @@ If Ollama and Qdrant are already running locally (`localhost:11434` and gRPC `63
 dotnet run --project AskMyDocs.API
 ```
 
-That uses `http://localhost:5058` (see `launchSettings.json`). `appsettings.json` already points at localhost; compose overrides those URLs when you run in Docker.
+Chat is at [http://localhost:5058](http://localhost:5058). `appsettings.json` already points at localhost; compose overrides those URLs in Docker.
 
-## Tests and CI
+## Tests
 
 ```bash
 dotnet test
 ```
 
-GitHub Actions on `master` does restore, Release build, then the same `dotnet test`. Tests do not start Docker, Ollama, or Qdrant. The health test boots the API host without the startup indexer.
+CI on `master` runs the same. Tests do not start Docker, Ollama, or Qdrant.
 
-| Area | What they actually check |
-| --- | --- |
-| `DocumentService` | paragraph splitting, overlap, source filenames, empty files, ignoring non-markdown |
-| `RagService` | embed → search top 5 → prompt; source grouping; empty retrieval; Ollama failures |
-| Controllers | chat forwards the message; empty message is rejected; index counts files vs chunks; bad API key is rejected |
-| `/health` | test host returns 200 `Healthy` |
-
-The HTTP clients and the Qdrant adapter are left out on purpose. Faking `HttpClient` there would not prove much.
-
-## Stack
-
-- .NET 10 / ASP.NET Core
-- Ollama (`qwen3:1.7b`, `nomic-embed-text`)
-- Qdrant
-- xUnit
-- MIT license
-
-Config lives under `Ollama`, `Qdrant`, and `IndexApiKey` in `appsettings.json`. Compose sets `Ollama__BaseUrl`, `Qdrant__Host`, `Qdrant__Port`, and `IndexApiKey` so the container talks to the other services by name.
+.NET 10, Ollama, Qdrant. MIT license.
