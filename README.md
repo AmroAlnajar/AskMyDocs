@@ -35,33 +35,9 @@ cd AskMyDocs.API
 docker compose up --build
 ```
 
-When `askmydocs-api` is up, open [http://localhost:8080](http://localhost:8080).
+When `askmydocs-api` is up, open [http://localhost:8080](http://localhost:8080) and ask a question.
 
-```bash
-curl -s http://localhost:8080/api/chat \
-  -H "Content-Type: application/json" \
-  -d "{\"message\":\"How does Helix authenticate requests?\"}"
-```
-
-On PowerShell, use `curl.exe` so you do not hit the `Invoke-WebRequest` alias. Empty `message` is **400**. Ollama down or timed out is **503**. `GET /health` should return `Healthy`.
-
-```json
-{
-  "answer": "...",
-  "sources": [{ "document": "authentication.md", "score": 0.81 }]
-}
-```
-
-`score` is Qdrant similarity (best chunk if the same file showed up more than once).
-
-After you edit markdown:
-
-```bash
-curl -s -X POST http://localhost:8080/api/documents/index \
-  -H "X-Api-Key: dev-index-key"
-```
-
-Wrong or missing key is **401**. The key is `IndexApiKey` in config (default `dev-index-key`). Change it if this is not just local.
+After you edit markdown, `POST /api/documents/index` with header `X-Api-Key: dev-index-key` (that is `IndexApiKey` in config). Change the key if this is not just local.
 
 ### API on the host
 
