@@ -1,5 +1,7 @@
 # AskMyDocs
 
+[![CI](https://github.com/AmroAlnajar/AskMyDocs/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/AmroAlnajar/AskMyDocs/actions/workflows/ci.yml)
+
 Ask a folder of markdown. The API chunks it, embeds it with Ollama, stores the vectors in Qdrant, and answers with the files it used.
 
 The chat is a static page served by the API — no extra frontend. Sample docs describe a fake platform called Helix.
