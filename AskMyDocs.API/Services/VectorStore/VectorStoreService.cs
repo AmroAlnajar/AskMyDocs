@@ -14,12 +14,17 @@ public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService emb
 
 	public async Task StoreAsync(IReadOnlyList<DocumentChunk> chunks, CancellationToken cancellationToken = default)
 	{
+		await ResetCollectionAsync(cancellationToken);
+
+		if (chunks.Count == 0)
+			return;
+
 		var points = new List<PointStruct>();
 
 		foreach (var chunk in chunks)
 		{
 			var embedding =
-				await embeddingService.GenerateEmbeddingAsync(chunk.Content, cancellationToken);
+				await embeddingService.GenerateEmbeddingAsync(chunk.EmbeddingText, cancellationToken);
 
 			var point = new PointStruct
 			{
@@ -28,7 +33,9 @@ public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService emb
 				Payload =
 				{
 					["content"] = chunk.Content,
-					["source"] = chunk.Source
+					["source"] = chunk.Source,
+					["heading"] = chunk.Heading,
+					["index"] = (long)chunk.Index
 				}
 			};
 
@@ -53,8 +60,9 @@ public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService emb
 			.Where(x => x.Payload.ContainsKey("content"))
 			.Select(x => new DocumentSearchResult(
 				x.Payload["content"].StringValue,
-				x.Payload["source"].StringValue,
-				x.Score))
+				x.Payload.TryGetValue("source", out var source) ? source.StringValue : "",
+				x.Score,
+				x.Payload.TryGetValue("heading", out var heading) ? heading.StringValue : ""))
 			.ToList();
 	}
 
@@ -65,7 +73,21 @@ public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService emb
 		if (collections.Contains(CollectionName))
 			return;
 
-		await qdrantClient.CreateCollectionAsync(
+		await CreateCollectionAsync(cancellationToken);
+	}
+
+	private async Task ResetCollectionAsync(CancellationToken cancellationToken)
+	{
+		var collections = await qdrantClient.ListCollectionsAsync(cancellationToken: cancellationToken);
+
+		if (collections.Contains(CollectionName))
+			await qdrantClient.DeleteCollectionAsync(CollectionName, cancellationToken: cancellationToken);
+
+		await CreateCollectionAsync(cancellationToken);
+	}
+
+	private Task CreateCollectionAsync(CancellationToken cancellationToken)
+		=> qdrantClient.CreateCollectionAsync(
 			CollectionName,
 			new VectorParams
 			{
@@ -73,11 +95,10 @@ public class VectorStoreService(QdrantClient qdrantClient, IEmbeddingService emb
 				Distance = Distance.Cosine
 			},
 			cancellationToken: cancellationToken);
-	}
 
 	private static Guid CreateDeterministicId(DocumentChunk chunk)
 	{
-		var input = $"{chunk.Source}:{chunk.Content}";
+		var input = $"{chunk.Source}:{chunk.Heading}:{chunk.Index}:{chunk.Content}";
 		var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
 
 		return new Guid(hash[..16]);

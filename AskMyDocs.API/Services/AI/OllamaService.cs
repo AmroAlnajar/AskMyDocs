@@ -14,7 +14,13 @@ public class OllamaService(
 		{
 			model = options.Value.Model,
 			prompt = message,
-			stream = false
+			stream = false,
+			think = false,
+			options = new
+			{
+				temperature = 0.1,
+				num_predict = 384
+			}
 		};
 
 		try

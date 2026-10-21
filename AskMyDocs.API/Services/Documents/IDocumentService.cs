@@ -7,4 +7,12 @@ public interface IDocumentService
 
 public record DocumentChunk(
 	string Content,
-	string Source);
+	string Source,
+	string Heading = "",
+	int Index = 0)
+{
+	public string EmbeddingText =>
+		string.IsNullOrEmpty(Heading)
+			? $"[{Source}]\n{Content}"
+			: $"[{Source}] {Heading}\n{Content}";
+}

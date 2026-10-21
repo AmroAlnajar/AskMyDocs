@@ -6,8 +6,7 @@ namespace AskMyDocs.Tests.Services;
 
 public class DocumentServiceTests : IDisposable
 {
-    // Future reference: Must match DocumentService.ChunkSize.
-    private const int ChunkSize = 500;
+    private const int ChunkSize = MarkdownChunker.ChunkSize;
 
     private readonly string _contentRoot;
     private readonly string _knowledgeBasePath;
@@ -58,7 +57,7 @@ public class DocumentServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetDocumentChunksAsync_WhenParagraphsExceedChunkSize_SplitsIntoMultipleChunks()
+    public async Task GetDocumentChunksAsync_WhenParagraphsExceedChunkSize_SplitsAndOverlaps()
     {
         var first = Paragraph(400, 'a');
         var second = Paragraph(150, 'b');
@@ -67,41 +66,27 @@ public class DocumentServiceTests : IDisposable
 
         var chunks = await CreateSut().GetDocumentChunksAsync();
 
-        Assert.Equal(3, chunks.Count);
+        Assert.Equal(2, chunks.Count);
         Assert.All(chunks, chunk => Assert.Equal("guide.md", chunk.Source));
         Assert.Equal(first, chunks[0].Content);
-        Assert.Equal(JoinParagraphs(first, second), chunks[1].Content);
-        Assert.Equal(JoinParagraphs(second, third), chunks[2].Content);
-    }
-
-    [Fact]
-    public async Task GetDocumentChunksAsync_WhenSplitting_CarriesLastParagraphIntoNextChunk()
-    {
-        var first = Paragraph(400, 'a');
-        var second = Paragraph(150, 'b');
-        var third = Paragraph(150, 'c');
-        WriteMarkdown("guide.md", JoinParagraphs(first, second, third));
-
-        var chunks = await CreateSut().GetDocumentChunksAsync();
-
-        Assert.Contains(first, chunks[1].Content);
         Assert.Contains(second, chunks[1].Content);
-        Assert.Contains(second, chunks[2].Content);
-        Assert.Contains(third, chunks[2].Content);
-        Assert.StartsWith(second, chunks[2].Content);
+        Assert.Contains(third, chunks[1].Content);
+        Assert.StartsWith(first[^MarkdownChunker.Overlap..], chunks[1].Content);
     }
 
     [Fact]
-    public async Task GetDocumentChunksAsync_WhenSingleParagraphExceedsChunkSize_KeepsItAsOneChunk()
+    public async Task GetDocumentChunksAsync_WhenSingleParagraphExceedsChunkSize_SplitsBySize()
     {
         var oversized = Paragraph(ChunkSize + 80, 'x');
         WriteMarkdown("long.md", oversized);
 
         var chunks = await CreateSut().GetDocumentChunksAsync();
 
-        var chunk = Assert.Single(chunks);
-        Assert.Equal(oversized, chunk.Content);
-        Assert.Equal("long.md", chunk.Source);
+        Assert.Equal(2, chunks.Count);
+        Assert.All(chunks, chunk => Assert.Equal("long.md", chunk.Source));
+        Assert.All(chunks, chunk => Assert.True(chunk.Content.Length <= ChunkSize + MarkdownChunker.Overlap));
+        Assert.Contains(oversized[..ChunkSize], chunks[0].Content);
+        Assert.Contains(oversized[ChunkSize..], chunks[1].Content);
     }
 
     [Fact]
@@ -117,7 +102,8 @@ public class DocumentServiceTests : IDisposable
 
         Assert.Equal(2, chunks.Count);
         Assert.Equal(first, chunks[0].Content);
-        Assert.Equal(JoinParagraphs(first, second), chunks[1].Content);
+        Assert.Contains(second, chunks[1].Content);
+        Assert.StartsWith(first[^MarkdownChunker.Overlap..], chunks[1].Content);
     }
 
     [Fact]
@@ -164,6 +150,31 @@ public class DocumentServiceTests : IDisposable
         var chunk = Assert.Single(chunks);
         Assert.Equal("keep.md", chunk.Source);
         Assert.Equal("Keep this.", chunk.Content);
+    }
+
+    [Fact]
+    public async Task GetDocumentChunksAsync_WhenMarkdownHasHeadings_SplitsBySectionAndStoresHeading()
+    {
+        WriteMarkdown("authentication.md", """
+            # Helix Authentication
+
+            Uses Entra ID.
+
+            ## Token acquisition
+
+            Portal uses PKCE.
+            """);
+
+        var chunks = await CreateSut().GetDocumentChunksAsync();
+
+        Assert.Equal(2, chunks.Count);
+        Assert.Equal("Helix Authentication", chunks[0].Heading);
+        Assert.Contains("Uses Entra ID.", chunks[0].Content);
+        Assert.Equal("Token acquisition", chunks[1].Heading);
+        Assert.Contains("Portal uses PKCE.", chunks[1].Content);
+        Assert.Equal(0, chunks[0].Index);
+        Assert.Equal(1, chunks[1].Index);
+        Assert.Equal("[authentication.md] Token acquisition\nPortal uses PKCE.", chunks[1].EmbeddingText);
     }
 
     [Fact]

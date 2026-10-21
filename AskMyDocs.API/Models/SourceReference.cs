@@ -2,4 +2,5 @@
 
 public record SourceReference(
 	string Document,
-	float Score);
+	float Score,
+	string Heading = "");

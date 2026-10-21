@@ -3,4 +3,5 @@
 public record DocumentSearchResult(
 	string Content,
 	string Source,
-	float Score);
+	float Score,
+	string Heading = "");

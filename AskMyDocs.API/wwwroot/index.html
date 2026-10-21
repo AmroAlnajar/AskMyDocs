@@ -66,18 +66,42 @@
 			border: 1px solid var(--line);
 			line-height: 1.5;
 			font-size: 0.95rem;
-			white-space: pre-wrap;
 			word-break: break-word;
 		}
 
 		.msg.you {
 			align-self: flex-end;
 			background: var(--you);
+			white-space: pre-wrap;
 		}
 
 		.msg.bot {
 			align-self: flex-start;
 			background: var(--bot);
+		}
+
+		.msg .answer p {
+			margin: 0 0 0.5rem;
+		}
+
+		.msg .answer p:last-child {
+			margin-bottom: 0;
+		}
+
+		.msg .answer ul {
+			margin: 0.15rem 0 0.5rem;
+			padding-left: 1.2rem;
+		}
+
+		.msg .answer li {
+			margin: 0.15rem 0;
+		}
+
+		.msg .answer code.cite {
+			font-size: 0.82em;
+			background: var(--paper);
+			border: 1px solid var(--line);
+			padding: 0.05rem 0.35rem;
 		}
 
 		.msg.error {
@@ -195,6 +219,50 @@
 			}[ch]));
 		}
 
+		function formatInline(text) {
+			return text
+				.replace(/\[([^\]]+\.md)\]/g, '<code class="cite">$1</code>')
+				.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+		}
+
+		function formatAnswer(text) {
+			const lines = escapeHtml((text || "").trim()).split("\n");
+			let html = "";
+			let inList = false;
+
+			const closeList = () => {
+				if (!inList) return;
+				html += "</ul>";
+				inList = false;
+			};
+
+			for (const line of lines) {
+				const bullet = line.match(/^[-*]\s+(.*)$/);
+				if (bullet) {
+					if (!inList) {
+						html += "<ul>";
+						inList = true;
+					}
+					html += `<li>${formatInline(bullet[1])}</li>`;
+					continue;
+				}
+
+				closeList();
+				if (line.trim() === "") continue;
+				html += `<p>${formatInline(line)}</p>`;
+			}
+
+			closeList();
+			return html || "<p></p>";
+		}
+
+		function sourceLabel(source) {
+			const parts = [source.document || "unknown"];
+			if (source.heading) parts.push(source.heading);
+			parts.push((source.score ?? 0).toFixed(2));
+			return parts.join(" · ");
+		}
+
 		function addMessage(role, html, extraClass) {
 			const el = document.createElement("article");
 			el.className = `msg ${role}${extraClass ? " " + extraClass : ""}`;
@@ -246,12 +314,12 @@
 				const sources = Array.isArray(body.sources) ? body.sources : [];
 				const chips = sources.length
 					? `<div class="sources">${sources.map((s) =>
-						`<span>${escapeHtml(s.document || "unknown")} · ${(s.score ?? 0).toFixed(2)}</span>`
+						`<span>${escapeHtml(sourceLabel(s))}</span>`
 					).join("")}</div>`
 					: "";
 
 				pending.innerHTML =
-					`<span class="who">AskMyDocs</span>${escapeHtml(body.answer || "")}${chips}`;
+					`<span class="who">AskMyDocs</span><div class="answer">${formatAnswer(body.answer || "")}</div>${chips}`;
 			} catch (error) {
 				pending.classList.add("error");
 				pending.innerHTML =
